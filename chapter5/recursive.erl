@@ -12,7 +12,8 @@
     zip/2,
     tail_zip/2,
     lenient_zip/2,
-    tail_lenient_zip/2
+    tail_lenient_zip/2,
+    quicksort/1
 ]).
 
 %fac(N) when N == 0 -> 1;
@@ -69,3 +70,12 @@ tail_lenient_zip(L, R) -> lists:reverse(tail_lenient_zip(L, R, [])).
 tail_lenient_zip([], _, Acc) -> Acc;
 tail_lenient_zip(_, [], Acc) -> Acc;
 tail_lenient_zip([X | Xs], [Y | Ys], Acc) -> tail_lenient_zip(Xs, Ys, [{X, Y} | Acc]).
+
+quicksort([]) -> [];
+quicksort([Pivot | Rest]) -> {Smaller, Larger} = partition(Pivot, Rest, [], []),
+                            quicksort(Smaller) ++ [Pivot] ++ quicksort(Larger).
+partition(_, [], Smaller, Larger) -> {Smaller, Larger};
+partition(Pivot, [H | T], Smaller, Larger) ->
+    if H =< Pivot -> partition(Pivot, T, [H | Smaller], Larger);
+        H > Pivot -> partition(Pivot, T, Smaller, [H | Larger])
+    end.
