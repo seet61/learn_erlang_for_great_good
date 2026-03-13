@@ -44,7 +44,7 @@ start_link(Name) ->
 %% запрос начала сессии
 %% возвращается, когда другая сторона принимает запрос
 trade(OwnPid, OtherPid) ->
-    gen_fsm:sync_send_event(FsmRef, Event, Timeout).
+    gen_fsm:sync_send_event(OwnPid, {negotiate, OtherPid}, 30_000).
 
 %% примает чье-то предложение начать торговые переговоры
 accept_trade(OwnPid) ->
@@ -107,6 +107,10 @@ ask_commit(OtherPid) ->
 %% синхронное завершение сделки
 do_commit(OtherPid) ->
     gen_fsm:sync_send_event(OtherPid, do_commit).
+
+%% Make the other FSM aware that your client cancelled the trade
+notify_cancel(OtherPid) ->
+    gen_fsm:send_all_state_event(OtherPid, cancel).
 
 %% функции обратного вызова
 -record(
@@ -194,20 +198,20 @@ remove(Item, Items) ->
 negotiate({make_offer, Item}, State = #state{own_items = OwnItems}) ->
     do_offer(State#state.other, Item),
     notice(State, "предлагаю ~p ~n", [Item]),
-    {next_state, negotiate, State#state{own_items = add(Item, Items)}};
+    {next_state, negotiate, State#state{own_items = add(Item, OwnItems)}};
 %% отозвать
 negotiate({retract_offer, Item}, State = #state{own_items = OwnItems}) ->
     undo_offer(State#state.other, Item),
     notice(State, "отзываю предложенный товар ~p ~n", [Item]),
-    {next_state, negotiate, State#state{own_items = remove(Item, Items)}};
+    {next_state, negotiate, State#state{own_items = remove(Item, OwnItems)}};
 %% предлагают
 negotiate({do_offer, Item}, State = #state{own_items = OwnItems}) ->
-    notice(State, "другой ирок предлагает ~p ~n", [Item]),
-    {next_state, negotiate, State#state{own_items = add(Item, Items)}};
+    notice(State, "другой игрок предлагает ~p ~n", [Item]),
+    {next_state, negotiate, State#state{own_items = add(Item, OwnItems)}};
 %% отзывают предложение
 negotiate({undo_offer, Item}, State = #state{own_items = OwnItems}) ->
     notice(State, "другой игрок отзывает ~p ~n", [Item]),
-    {next_state, negotiate, State#state{own_items = remove(Item, Items)}};
+    {next_state, negotiate, State#state{own_items = remove(Item, OwnItems)}};
 %% проверка готовности
 negotiate(are_you_ready, State = #state{other = OtherPid}) ->
     io:format("Другая сторона готова обменяться ~n"),
@@ -217,6 +221,7 @@ negotiate(are_you_ready, State = #state{other = OtherPid}) ->
         [State#state.other_items, State#state.own_items]),
     not_yet(OtherPid),
     {next_state, negotiate, State};
+
 negotiate(Event, Data) ->
     unexpected(Event, negotiate),
     {next_state, negotiate, Data}.
@@ -230,3 +235,127 @@ negotiate(ready, From, State = #state{other = OtherPid}) ->
 negotiate(Event, _From, State) ->
     unexpected(Event, negotiate),
     {next_state, negotiate, State}.
+
+%% ожидание обмена
+wait({do_offer, Item}, State = #state{other_items = OtherItems}) ->
+    gen_fsm:reply(State#state.from, offer_changed),
+    notice(State, "другая сторона предлагает ~p ~n", [Item]),
+    {next_state, negotiate, State#state{other_items = add(Item, OtherItems)}};
+
+wait({undo_offer, Item}, State = #state{other_items = OtherItems}) ->
+    notice(State, "другая сторона отзывает ~p ~n", [Item]),
+    {next_state, negotiate, State#state{other_items = remove(Item, OtherItems)}};
+
+% синхронизация состояний КА перед обменом
+wait(are_you_ready, State = #state{}) ->
+    am_ready(State#state.other),
+    notice(State, "спросили о готовности, и я готов. Жду такой же ответ ~n", []),
+    {next_state, wait, State};
+
+wait(not_yet, State = #state{}) ->
+    notice(State, "Другая сторона пока не готова ~n", []),
+    {next_state, wait, State};
+
+wait('ready!', State = #state{}) ->
+    am_ready(State#state.other),
+    ack_trans(State#state.other),
+    gen_fsm:reply(State#state.from, ok),
+    notice(State, "другая сторона готова. Переходим в состояние ready ~n", []),
+    {next_state, ready, State};
+
+%% все что не попало
+wait(Event, State) ->
+    unexpected(Event, wait),
+    {next_state, wait, State}.
+
+priority(OwnPid, OtherPid) when OwnPid > OtherPid -> true;
+priority(OwnPid, OtherPid) when OwnPid < OtherPid -> false.
+
+ready(ack, State = #state{}) ->
+    case priority(self(), State#state.other) of
+        true ->
+            try
+                notice(State, "запрашиваю начало сделки ~n", []),
+                ready_commit = ask_commit(State#state.other),
+                notice(State, "приказываю начать сделку ~n", []),
+                ok = do_commit(State#state.other),
+                notice(State, "записываю данные ~n", []),
+                commit(State),
+                {stop, normal, State}
+            catch Class:Reason ->
+                %% Галя, у нас ОТМЕНА!!!!!
+                %% команда read_commit или do_commit не прошла
+                notice(State, "запись сделки не удалась ~n", []),
+                {stop, {Class, Reason}, State}
+            end;
+        false ->
+            {next_state, ready, State}
+    end;
+
+ready(Event, State) ->
+    unexpected(Event, ready),
+    {next_state, ready, State}.
+
+ready(ask_commit, _From, State) ->
+    notice(State, "отвечаю на ask_commit ~n", []),
+    {reply, ready_commit, ready, State};
+
+ready(do_commit, _From, State) ->
+    notice(State, "записываю данные...~n", []),
+    commit(State),
+    {stop, normal, ok, State};
+
+ready(Event, _From, State) ->
+    unexpected(Event, ready),
+    {next_state, ready, State}.
+
+%% запись сделки
+commit(State = #state{}) ->
+    io:format("Сдклка завершена для ~s."
+        "Отправлены товары:~n~p, ~nПолучены товары:~n~p. ~n"
+        "Эта операция должна произвести атомарную запись в БД",
+        [State#state.name, State#state.own_items, State#state.other_items]).
+
+%% Второй игрок послал событие отмены.
+%% Перкратить делать что бы сейчас ни делали,
+%% и завершить работу!
+handle_event(cancel, _StateName, State = #state{}) ->
+    notice(State, "пришел запрос отмены ~n", []),
+    {stop, other_cancelled, State};
+
+handle_event(Event, StateName, State) ->
+    unexpected(Event, StateName),
+    {next_state, StateName, State}.
+
+%% Наше событие отмены.
+%% Предупреждение второго игрока
+handle_sync_event(cancel, _From, _StateName, State = #state{}) ->
+    notify_cancel(State#state.other),
+    notice(State, "отмена сделки, отправка события отмены ~n", []),
+    {stop, cancelled, ok, State};
+
+%% Не отвечаем на непредвиденные события
+handle_sync_event(Event, _From, StateName, State) ->
+    unexpected(Event, StateName),
+    {next_state, StateName, State}.
+
+%% Аварийное завершение работы
+handle_info({'DOWN', Ref, process, Pid, Reason},
+    _StateName,
+    State = #state{other = Pid, monitor = Ref}) ->
+        notice(State, "потеряна связь с другим игроком сделки ~n", []),
+        {stop, {other_down, Reason}, State};
+
+handle_info(Event, StateName, State) ->
+    unexpected(Event, StateName),
+    {next_state, StateName, State}.
+
+code_change(_OldVersion, StateName, Data, _Extra) ->
+    {ok, StateName, Data}.
+
+%% Транзакция завершена
+terminate(normal, ready, State=#state{}) ->
+    notice(State, "КА завершает работу ~n", []);
+
+terminate(_Reason, _StateName, _StateData) ->
+    ok.
