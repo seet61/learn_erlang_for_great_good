@@ -48,7 +48,8 @@ trade(OwnPid, OtherPid) ->
 
 %% примает чье-то предложение начать торговые переговоры
 accept_trade(OwnPid) ->
-    gen_fsm:sync_send_event(OwnPid, accept_negotiate).
+    io:format("accept_trade for OwnPid: ~p ~n", [OwnPid]),
+    gen_fsm:sync_send_event(OwnPid, accept_negotiate,30_000).
 
 %% предложение обмена
 make_offer(OwnPid, Item) ->
@@ -205,24 +206,25 @@ negotiate({retract_offer, Item}, State = #state{own_items = OwnItems}) ->
     notice(State, "отзываю предложенный товар ~p ~n", [Item]),
     {next_state, negotiate, State#state{own_items = remove(Item, OwnItems)}};
 %% предлагают
-negotiate({do_offer, Item}, State = #state{own_items = OwnItems}) ->
+negotiate({do_offer, Item}, State = #state{other_items = OtherItems}) ->
     notice(State, "другой игрок предлагает ~p ~n", [Item]),
-    {next_state, negotiate, State#state{own_items = add(Item, OwnItems)}};
+    {next_state, negotiate, State#state{other_items = add(Item, OtherItems)}};
 %% отзывают предложение
-negotiate({undo_offer, Item}, State = #state{own_items = OwnItems}) ->
+negotiate({undo_offer, Item}, State = #state{other_items = OtherItems}) ->
     notice(State, "другой игрок отзывает ~p ~n", [Item]),
-    {next_state, negotiate, State#state{own_items = remove(Item, OwnItems)}};
+    {next_state, negotiate, State#state{other_items = remove(Item, OtherItems)}};
 %% проверка готовности
 negotiate(are_you_ready, State = #state{other = OtherPid}) ->
     io:format("Другая сторона готова обменяться ~n"),
     notice(State,
         "Другой пользователь готов передать товары: ~n"
-        "Вы почите ~p, Другая сторона получит ~p ~n",
+        "Вы получите ~p, Другая сторона получит ~p ~n",
         [State#state.other_items, State#state.own_items]),
     not_yet(OtherPid),
     {next_state, negotiate, State};
 
 negotiate(Event, Data) ->
+    io:format(negotiate),
     unexpected(Event, negotiate),
     {next_state, negotiate, Data}.
 

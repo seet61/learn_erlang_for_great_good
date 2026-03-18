@@ -5,19 +5,24 @@
 %% -- leftover messages possible on race conditions on ready state
 main_ab() ->
     S = self(),
+    io:format("S: ~p ~n", [S]),
     PidCliA = spawn(fun() -> a(S) end),
+    %sys:trace(PidCliA,true),
+    io:format("PidCliA: ~p ~n", [PidCliA]),
     receive PidA -> PidA end,
-    spawn(fun() -> b(PidA, PidCliA) end).
+    io:format("PidA: ~p ~n", [PidA]),
+    spawn(fun() -> b(PidA, PidCliA) end),
+    io:format("main_ab spawn end ~n").
 
 a(Parent) ->
     {ok, Pid} = trade_fsm:start_link("Carl"),
     Parent ! Pid,
     io:format("Spawned Carl: ~p~n", [Pid]),
-    %sys:trace(Pid,true),
+    sys:trace(Pid,true),
     timer:sleep(400),
     trade_fsm:accept_trade(Pid),
     timer:sleep(200),
-    io:format("~p~n",[trade_fsm:ready(Pid)]),
+    io:format("trade_fsm:ready ~p~n",[trade_fsm:ready(Pid)]),
     timer:sleep(500),
     trade_fsm:make_offer(Pid, "horse"),
     trade_fsm:make_offer(Pid, "sword"),
@@ -32,7 +37,7 @@ a(Parent) ->
 b(PidA, PidCliA) ->
     {ok, Pid} = trade_fsm:start_link("Jim"),
     io:format("Spawned Jim: ~p~n", [Pid]),
-    %sys:trace(Pid,true),
+    sys:trace(Pid,true),
     timer:sleep(250),
     trade_fsm:trade(Pid, PidA),
     trade_fsm:make_offer(Pid, "boots"),
@@ -42,7 +47,7 @@ b(PidA, PidCliA) ->
     trade_fsm:make_offer(Pid, "shotgun"),
     timer:sleep(500),
     io:format("b synchronizing~n"),
-    sync1(PidCliA),
+    %sync1(PidCliA),
     trade_fsm:make_offer(Pid, "horse"), %% race condition!
     trade_fsm:ready(Pid),
     timer:sleep(100),
@@ -135,10 +140,12 @@ f(PidE, PidCliE) ->
 
 %%% Utils
 sync1(Pid) ->
+    io:format("sending sync1 to ~p ~n", [Pid]),
     Pid ! self(),
     receive ack -> ok end.
 
 sync2() ->
+    io:format("calling sync2"),
     receive
         From -> From ! ack
     end.
