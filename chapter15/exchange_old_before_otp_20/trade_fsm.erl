@@ -357,5 +357,6 @@ code_change(_OldVersion, StateName, Data, _Extra) ->
 terminate(normal, ready, State=#state{}) ->
     notice(State, "КА завершает работу ~n", []);
 
-terminate(_Reason, _StateName, _StateData) ->
+terminate(Reason, _StateName, _StateData) ->
+    io:format("terminate: ~p ~n", [Reason]),
     ok.
