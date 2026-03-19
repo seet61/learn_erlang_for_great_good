@@ -1,7 +1,8 @@
 -module(test).
 -export([
     test1/0,
-    test2/0
+    test2/0,
+    test3/0
 ]).
 
 test1() ->
@@ -24,3 +25,8 @@ test2() ->
     timer:sleep(100),
     gen_event:notify(Pid, next_round),
     timer:sleep(100).
+
+test3() ->
+    {ok, Pid} = curling:start_link("Пираты", "Шотландцы"),
+    curling:add_points(Pid, "Шотландцы", 2),
+    curling:next_round(Pid).
