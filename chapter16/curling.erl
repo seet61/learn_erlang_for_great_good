@@ -3,7 +3,9 @@
     start_link/2,
     set_teams/3,
     add_points/3,
-    next_round/1
+    next_round/1,
+    join_feed/2,
+    leave_feed/2
 ]).
 
 start_link(TeamA, TeamB) ->
@@ -21,3 +23,12 @@ add_points(Pid, Team, N) ->
 
 next_round(Pid) ->
     gen_event:notify(Pid, next_round).
+
+%% подписка и отписка на поток событий
+join_feed(Pid, ToPid) ->
+    HandlerId = {curling_feed, make_ref},
+    gen_event:add_handler(Pid, HandlerId, [ToPid]),
+    HandlerId.
+
+    leave_feed(Pid, HandlerId) ->
+        gen_event:delete_handler(Pid, HandlerId, leave_feed).

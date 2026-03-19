@@ -48,7 +48,7 @@ trade(OwnPid, OtherPid) ->
 
 %% примает чье-то предложение начать торговые переговоры
 accept_trade(OwnPid) ->
-    io:format("accept_trade for OwnPid: ~p ~n", [OwnPid]),
+    io:format("accept_trade for OwnPid: ~tp ~n", [OwnPid]),
     gen_fsm:sync_send_event(OwnPid, accept_negotiate,30_000).
 
 %% предложение обмена
@@ -90,7 +90,7 @@ are_you_ready(OtherPid) ->
 
 %% ответ о неготовности, не в состоянии wait
 not_yet(OtherPid) ->
-    gen_fsm:send_event(OtherPid, not_yet).
+    gen_fsm:send_event(OtherPid, not_yet)
 
 %% сообщить другому что ожидает состояние ready
 %% состояние должно измениться на ready
@@ -133,17 +133,17 @@ init(Name) ->
 %% Это зависит от реализации
 %% В данном случае сообщение в консоли
 notice(#state{name = Name}, String, Args) ->
-    io:format("~s: " ++ String ++ "~n", [Name | Args]).
+    io:format("~ts: " ++ String ++ "~n", [Name | Args]).
 
 %% запись в журнал неожиданных сообщений
 unexpected(Message, State) ->
-    io:format("~p получено неизвестное сообщение ~p в состоянии ~p ~n",
+    io:format("~tp получено неизвестное сообщение ~tp в состоянии ~tp ~n",
         [self(), Message, State]).
 
 %% события запроса обмена КА
 idle({ask_negotiate, OtherPid}, State = #state{}) ->
     Ref = monitor(process, OtherPid),
-    notice(State, "~p предлагает начать переговоры ~n", [OtherPid]),
+    notice(State, "~tp предлагает начать переговоры ~n", [OtherPid]),
     {next_state, idle_wait, State#state{other = OtherPid, monitor = Ref}};
 
 idle(Event, Data) ->
@@ -153,7 +153,7 @@ idle(Event, Data) ->
 %% Клиент запрашивает КА об обмене
 idle({negotiate, OtherPid}, From, State = #state{}) ->
     ask_negotiate(OtherPid, self()),
-    notice(State, "предлагаем ~p начать торговые переговоры ~n", [OtherPid]),
+    notice(State, "предлагаем ~tp начать торговые переговоры ~n", [OtherPid]),
     Ref = monitor(process, OtherPid),
     {next_state, idle_wait, State#state{other = OtherPid, monitor = Ref, from = From}};
 
@@ -198,27 +198,27 @@ remove(Item, Items) ->
 %% предложить
 negotiate({make_offer, Item}, State = #state{own_items = OwnItems}) ->
     do_offer(State#state.other, Item),
-    notice(State, "предлагаю ~p ~n", [Item]),
+    notice(State, "предлагаю ~tp ~n", [Item]),
     {next_state, negotiate, State#state{own_items = add(Item, OwnItems)}};
 %% отозвать
 negotiate({retract_offer, Item}, State = #state{own_items = OwnItems}) ->
     undo_offer(State#state.other, Item),
-    notice(State, "отзываю предложенный товар ~p ~n", [Item]),
+    notice(State, "отзываю предложенный товар ~tp ~n", [Item]),
     {next_state, negotiate, State#state{own_items = remove(Item, OwnItems)}};
 %% предлагают
 negotiate({do_offer, Item}, State = #state{other_items = OtherItems}) ->
-    notice(State, "другой игрок предлагает ~p ~n", [Item]),
+    notice(State, "другой игрок предлагает ~tp ~n", [Item]),
     {next_state, negotiate, State#state{other_items = add(Item, OtherItems)}};
 %% отзывают предложение
 negotiate({undo_offer, Item}, State = #state{other_items = OtherItems}) ->
-    notice(State, "другой игрок отзывает ~p ~n", [Item]),
+    notice(State, "другой игрок отзывает ~tp ~n", [Item]),
     {next_state, negotiate, State#state{other_items = remove(Item, OtherItems)}};
 %% проверка готовности
 negotiate(are_you_ready, State = #state{other = OtherPid}) ->
     io:format("Другая сторона готова обменяться ~n"),
     notice(State,
         "Другой пользователь готов передать товары: ~n"
-        "Вы получите ~p, Другая сторона получит ~p ~n",
+        "Вы получите ~tp, Другая сторона получит ~tp ~n",
         [State#state.other_items, State#state.own_items]),
     not_yet(OtherPid),
     {next_state, negotiate, State};
@@ -241,11 +241,11 @@ negotiate(Event, _From, State) ->
 %% ожидание обмена
 wait({do_offer, Item}, State = #state{other_items = OtherItems}) ->
     gen_fsm:reply(State#state.from, offer_changed),
-    notice(State, "другая сторона предлагает ~p ~n", [Item]),
+    notice(State, "другая сторона предлагает ~tp ~n", [Item]),
     {next_state, negotiate, State#state{other_items = add(Item, OtherItems)}};
 
 wait({undo_offer, Item}, State = #state{other_items = OtherItems}) ->
-    notice(State, "другая сторона отзывает ~p ~n", [Item]),
+    notice(State, "другая сторона отзывает ~tp ~n", [Item]),
     {next_state, negotiate, State#state{other_items = remove(Item, OtherItems)}};
 
 % синхронизация состояний КА перед обменом
@@ -313,8 +313,8 @@ ready(Event, _From, State) ->
 
 %% запись сделки
 commit(State = #state{}) ->
-    io:format("Сдклка завершена для ~s."
-        "Отправлены товары:~n~p, ~nПолучены товары:~n~p. ~n"
+    io:format("Сдклка завершена для ~ts."
+        "Отправлены товары:~n~tp, ~nПолучены товары:~n~tp. ~n"
         "Эта операция должна произвести атомарную запись в БД",
         [State#state.name, State#state.own_items, State#state.other_items]).
 
@@ -360,5 +360,5 @@ terminate(normal, ready, State=#state{}) ->
     notice(State, "КА завершает работу ~n", []);
 
 terminate(Reason, _StateName, _StateData) ->
-    io:format("terminate: ~p ~n", [Reason]),
+    io:format("terminate: ~tp ~n", [Reason]),
     ok.
