@@ -70,11 +70,14 @@ init({Limit, MFA, Sup}) ->
     %%
     %% вариант без блокировки
     self() ! {start_worker_supervisor, Sup, MFA},
-    {ok, #state{limit = Limit, sup = undefined, refs = gb_sets:empty(), queue = queue:new()}}.
+    {ok, #state{limit = Limit, sup = Sup, refs = gb_sets:empty(), queue = queue:new()}}.
 
 handle_info({start_worker_supervisor, Sup, MFA}, State = #state{}) ->
+    io:format("start_worker_supervisor ~tp ~tp ~n", [Sup, MFA]),
     {ok, Pid} = supervisor:start_child(Sup, ?SPEC(MFA)),
+    io:format("ok ~tp ~n", [Pid]),
     link(Pid),
+    io:format("link ~n"),
     {noreply, State#state{sup = Pid}};
 
 handle_info({'DOWN', Ref, process, _Pid, _},

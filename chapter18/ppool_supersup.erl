@@ -22,13 +22,13 @@ stop() ->
 
 init([]) ->
     MaxRestart = 6,
-    MaxTime = 60,
-    {ok, {one_for_one, MaxRestart, MaxTime}, []}.
+    MaxTime = 3600,
+    {ok, {{one_for_one, MaxRestart, MaxTime}, []}}.
 
 start_pool(Name, Limit, MFA) ->
     ChildSpec = {Name,
         {ppool_sup, start_link, [Name, Limit, MFA]},
-        permanent, 10500, supervisor, [ppool_sup]
+        permanent, 10_500, supervisor, [ppool_sup]
     },
     supervisor:start_child(ppool, ChildSpec).
 
