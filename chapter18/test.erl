@@ -17,6 +17,6 @@ flush() ->
     receive Message ->
         io:format("~tp ~n", [Message]),
         flush()
-    after 500 ->
+    after 0 ->
         ok
     end.

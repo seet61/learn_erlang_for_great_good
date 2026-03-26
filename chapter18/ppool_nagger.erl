@@ -16,6 +16,7 @@
 ]).
 
 start_link(Task, Delay, Max, SendTo) ->
+    io:format("start_link with params"),
     gen_server:start_link(?MODULE, {Task, Delay, Max, SendTo}, []).
 
 stop(Pid) ->

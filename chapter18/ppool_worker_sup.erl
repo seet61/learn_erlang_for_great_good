@@ -6,6 +6,7 @@
 ]).
 
 start_link(MFA = {_, _, _}) ->
+    io:format("ppool_worker_sup MFA ~tp ~n", [MFA]),
     supervisor:start_link(?MODULE, MFA).
 
 init({M, F, A}) ->

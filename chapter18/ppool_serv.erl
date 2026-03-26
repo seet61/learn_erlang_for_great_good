@@ -22,7 +22,7 @@
     SPEC(MFA),
     {
         worker_sup,
-        {ppol_worker_sup, start_link, [MFA]},
+        {ppool_worker_sup, start_link, [MFA]},
         temporary,
         10_000,
         supervisor,
@@ -69,11 +69,13 @@ init({Limit, MFA, Sup}) ->
     %%{ok, #state{limit = Limit, sup = Sup, refs = gb_sets:empty(), queue = queue:new()}}.
     %%
     %% вариант без блокировки
+    io:format("ppool_serv init Limit: ~tp MFA: ~tp Sup: ~tp ~n", [Limit, MFA, Sup]),
     self() ! {start_worker_supervisor, Sup, MFA},
     {ok, #state{limit = Limit, sup = Sup, refs = gb_sets:empty(), queue = queue:new()}}.
 
 handle_info({start_worker_supervisor, Sup, MFA}, State = #state{}) ->
     io:format("start_worker_supervisor ~tp ~tp ~n", [Sup, MFA]),
+    io:format("SPEC(MFA): ~tp ~n", [?SPEC(MFA)]),
     {ok, Pid} = supervisor:start_child(Sup, ?SPEC(MFA)),
     io:format("ok ~tp ~n", [Pid]),
     link(Pid),

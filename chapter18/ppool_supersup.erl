@@ -30,6 +30,7 @@ start_pool(Name, Limit, MFA) ->
         {ppool_sup, start_link, [Name, Limit, MFA]},
         permanent, 10_500, supervisor, [ppool_sup]
     },
+    io:format("start_pool with ChildSpec: ~tp ~n", [ChildSpec]),
     supervisor:start_child(ppool, ChildSpec).
 
 stop_pool(Name) ->
