@@ -1,6 +1,7 @@
 -module(erlcount_lib).
 -export([
-    find_erl/1
+    find_erl/1,
+    regex_count/2
 ]).
 -include_lib("kernel/include/file.hrl").
 
@@ -27,7 +28,7 @@ handle_directory(Dir, Queue) ->
             dequeue_and_run(enqueue_many(Dir, Files, Queue))
     end.
 
-%% извлеение и обработка 1 элемента
+%% извлечение и обработка 1 элемента
 dequeue_and_run(Queue) ->
     case queue:out(Queue) of
         {empty, _} -> done;
@@ -46,4 +47,10 @@ handle_regular_file(Name, Queue) ->
             {continue, Name, fun() -> dequeue_and_run(Queue) end};
         _NotErl ->
             dequeue_and_run(Queue)
+    end.
+
+regex_count(Re, Str) ->
+    case re:run(Str, Re, [global]) of
+        nomatch -> 0;
+        {match, List} -> length(List)
     end.

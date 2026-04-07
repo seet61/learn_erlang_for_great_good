@@ -9,7 +9,7 @@
         {env,
             [{direcotry, "."},
             {regex, ["if\\s.+->", "case\\s.+\\sof"]},
-            {max_files_10}]
+            {max_files, 10}]
         }
     ]
 }.
