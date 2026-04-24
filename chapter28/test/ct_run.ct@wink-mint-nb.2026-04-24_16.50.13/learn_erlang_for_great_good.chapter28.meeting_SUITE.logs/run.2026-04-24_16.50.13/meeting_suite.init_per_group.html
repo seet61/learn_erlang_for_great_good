@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Test meeting_SUITE:init_per_group result</title>
+<meta http-equiv="cache-control" content="no-cache"></meta>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"></meta>
+<link rel="stylesheet" href="../../ct_default.css" type="text/css"></link>
+<script type="text/javascript" src="../../jquery-latest.js"></script>
+<script type="text/javascript" src="../../jquery.tablesorter.min.js"></script>
+</head>
+<body>
+
+<a name="top"></a><pre>
+=== Config function: <a href="meeting_suite.src.html#init_per_group-1">meeting_SUITE:init_per_group/2</a> (click for source code)
+
+=== Group properties: [{name,session}]
+
+=== Config value:
+
+    [{watchdog,&lt;0.146.0&gt;},
+     {tc_logfile,"/media/dmitriy/A61CF7781CF741BB/Projects/learn_erlang_for_great_good/chapter28/test/ct_run.ct@wink-mint-nb.2026-04-24_16.50.13/learn_erlang_for_great_good.chapter28.meeting_SUITE.logs/run.2026-04-24_16.50.13/meeting_suite.init_per_group.html"},
+     {tc_group_properties,[{name,session}]},
+     {tc_group_path,[[{suite,meeting_SUITE}]]},
+     {data_dir,"/media/dmitriy/A61CF7781CF741BB/Projects/learn_erlang_for_great_good/chapter28/test/meeting_SUITE_data/"},
+     {priv_dir,"/media/dmitriy/A61CF7781CF741BB/Projects/learn_erlang_for_great_good/chapter28/test/ct_run.ct@wink-mint-nb.2026-04-24_16.50.13/learn_erlang_for_great_good.chapter28.meeting_SUITE.logs/run.2026-04-24_16.50.13/log_private/"}]
+
+=== Current directory is "/media/dmitriy/A61CF7781CF741BB/Projects/learn_erlang_for_great_good/chapter28/test/ct_run.ct@wink-mint-nb.2026-04-24_16.50.13"
+
+=== Started at 2026-04-24 16:50:13
+
+<br />
+
+</pre>
+<div class="ct_error_notify"><pre><b>*** CT Error Notification 2026-04-24 16:50:13.417 ***</b><a id=e-1 class="link-to-entry" href="#e-1">&#x1f517;</a>
+meeting_SUITE:init_per_group failed
+Reason: {undef,[{meeting,...},{...}|...]}
+
+<a href="#end">Full error description and stacktrace</a>
+</pre></div>
+<pre>
+<a name="end"></a>
+
+
+=== Ended at 2026-04-24 16:50:13
+=== Location: [{meeting,start},
+ {meeting_SUITE,init_per_group,32},
+ {test_server,ts_tc,1794},
+ {test_server,run_test_case_eval1,1391},
+ {test_server,run_test_case_eval,1235}]
+=== === Reason: undefined function meeting:start/0
+  in function  meeting_SUITE:init_per_group/2 (meeting_SUITE.erl, line 32)
+  in call from test_server:ts_tc/3 (test_server.erl, line 1794)
+  in call from test_server:run_test_case_eval1/6 (test_server.erl, line 1391)
+  in call from test_server:run_test_case_eval/9 (test_server.erl, line 1235)
+=== 
+*** init_per_group failed.
+    Skipping all cases.
+</pre>
+<center>
+<br /><hr /><p>
+<a href="../../../all_runs.html">Test run history
+</a>  |  <a href="../../../index.html">Top level test index
+</a>  |  <a href="../../../suite.log.latest.html">Latest test result</a>
+</p>
+<div class="copyright">Copyright &copy; 2026 <a href="http://www.erlang.org">Open Telecom Platform</a><br />
+Updated: <!--date-->Fri Apr 24 2026 16:50:13<!--/date--><br />
+</div>
+</center>
+</body>
+</html>
